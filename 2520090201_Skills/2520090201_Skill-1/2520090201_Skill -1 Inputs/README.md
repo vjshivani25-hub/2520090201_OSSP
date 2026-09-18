@@ -212,3 +212,64 @@ printf("Shell Closed.\n");
 
 return 0;
 }
+
+
+================
+       5Q
+================ 
+#include <stdio.h>
+#include <string.h>
+#define MAX 200
+int main()
+{
+    char input[MAX];
+    while (1)
+{
+    printf("MyShell> ");
+
+    if (fgets(input, sizeof(input), stdin) == NULL)
+        break;
+
+    input[strcspn(input, "\n")] = '\0';
+
+    if (strcmp(input, "exit") == 0)
+        break;
+
+    if (strlen(input) == 0)
+    {
+        printf("Empty Command!\n");
+        continue;
+    }
+
+    printf("\nOriginal Command:\n%s\n", input);
+
+    int single = 0;
+    int dbl = 0;
+
+    for (int i = 0; input[i] != '\0'; i++)
+    {
+        if (input[i] == '\'')
+            single = !single;    
+            if (input[i] == '"')
+                dbl = !dbl;
+        }
+
+        printf("\nParsing Result:\n");
+
+        if (single)
+            printf("Error : Missing Closing Single Quote\n");
+        else
+            printf("Single Quotes : Valid\n");
+
+        if (dbl)
+            printf("Error : Missing Closing Double Quote\n");
+        else
+            printf("Double Quotes : Valid\n");
+
+        printf("\nStored String:\n%s\n", input);
+    }
+
+    printf("\nShell Closed.\n");
+
+    return 0;
+}
