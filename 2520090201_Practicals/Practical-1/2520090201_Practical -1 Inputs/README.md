@@ -371,3 +371,104 @@ int main()
 }
 
 
+==================
+       6Q
+==================
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#define FIFO1 "client_to_server"
+#define FIFO2 "server_to_client"
+int main()
+{
+    char message[100];
+    char response[200];
+mkfifo(FIFO1, 0666);
+mkfifo(FIFO2, 0666);
+
+printf("Server started. Waiting for client...\n");
+
+int read_fd = open(FIFO1, O_RDONLY);
+int write_fd = open(FIFO2, O_WRONLY);
+
+while (1)
+{
+    memset(message, 0, sizeof(message));
+
+    read(read_fd, message, sizeof(message));
+
+    printf("Client says: %s\n", message);
+
+    if (strcmp(message, "exit") == 0 ||
+        strcmp(message, "exit\n") == 0)
+    {
+        printf("Client disconnected.\n");
+        break;
+    }
+
+    snprintf(response, sizeof(response),
+             "Server processed: %s", message);
+
+    write(write_fd, response, strlen(response) + 1);
+}
+
+close(read_fd);
+close(write_fd);
+
+unlink(FIFO1);
+unlink(FIFO2);
+
+return 0;
+}
+
+
+==================
+       6Q(a)
+==================
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#define FIFO1 "client_to_server"
+#define FIFO2 "server_to_client"
+int main()
+{
+    char message[100];
+    char response[200];
+printf("Client started.\n");
+
+int write_fd = open(FIFO1, O_WRONLY);
+int read_fd = open(FIFO2, O_RDONLY);
+
+while (1)
+{
+    printf("Enter message: ");
+    fflush(stdout);
+
+    fgets(message, sizeof(message), stdin);
+
+    message[strcspn(message, "\n")] = '\0';
+
+    write(write_fd, message, strlen(message) + 1);
+
+    if (strcmp(message, "exit") == 0)
+    {
+        break;
+    }
+
+    memset(response, 0, sizeof(response));
+
+    read(read_fd, response, sizeof(response));
+
+    printf("Server response: %s\n", response);
+}
+
+close(write_fd);
+close(read_fd);
+
+return 0;
+}
