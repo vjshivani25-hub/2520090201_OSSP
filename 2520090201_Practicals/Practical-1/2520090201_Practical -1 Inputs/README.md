@@ -472,3 +472,72 @@ close(read_fd);
 
 return 0;
 }
+
+
+
+==================
+       7Q
+==================
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int global_var = 100;          // Global initialized variable
+int global_uninit;             // Global uninitialized variable
+
+static int static_var = 200;   // Static initialized variable
+static int static_uninit;      // Static uninitialized variable
+
+void code_function()
+{
+    printf("This is a function in the code segment.\n");
+}
+
+int main()
+{
+    int stack_var = 300;                 // Stack variable
+    int *heap_var = malloc(sizeof(int)); // Heap variable
+
+    if (heap_var == NULL)
+    {
+        printf("Memory allocation failed.\n");
+        return 1;
+    }
+
+    *heap_var = 400;
+
+    printf("\n========== PROCESS MEMORY LAYOUT ==========\n\n");
+
+    printf("PID                 : %d\n", getpid());
+
+    printf("\n--- CODE SEGMENT ---\n");
+    printf("Address of main()          : %p\n", (void *)main);
+    printf("Address of code_function() : %p\n", (void *)code_function);
+
+    printf("\n--- GLOBAL SEGMENT ---\n");
+    printf("Address of global_var      : %p\n", (void *)&global_var);
+    printf("Address of global_uninit   : %p\n", (void *)&global_uninit);
+
+    printf("\n--- STATIC SEGMENT ---\n");
+    printf("Address of static_var      : %p\n", (void *)&static_var);
+    printf("Address of static_uninit   : %p\n", (void *)&static_uninit);
+
+    printf("\n--- HEAP SEGMENT ---\n");
+    printf("Address of heap_var        : %p\n", (void *)heap_var);
+
+    printf("\n--- STACK SEGMENT ---\n");
+    printf("Address of stack_var       : %p\n", (void *)&stack_var);
+
+    printf("\n============================================\n");
+
+    printf("\nProcess is running...\n");
+    printf("Use another terminal to execute:\n");
+    printf("cat /proc/%d/maps\n", getpid());
+    printf("\nPress ENTER to terminate the process...\n");
+
+    getchar();
+
+    free(heap_var);
+
+    return 0;
+}
