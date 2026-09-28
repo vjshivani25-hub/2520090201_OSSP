@@ -273,3 +273,162 @@ int main()
 
     return 0;
 }
+
+
+================
+      6Q(a)
+================ 
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_INPUT 500
+#define MAX_ARGS 50
+
+void parse_input(char *input, char *args[]) {
+    int argc = 0;
+    int in_quotes = 0;
+    int escape = 0;
+    char *start = NULL;
+
+    for (int i = 0; input[i] != '\0'; i++) {
+
+        char c = input[i];
+
+        if (escape) {
+            if (start == NULL)
+                start = &input[i];
+
+            escape = 0;
+            continue;
+        }
+
+        if (c == '\\') {
+            if (start == NULL)
+                start = &input[i + 1];
+
+            escape = 1;
+            continue;
+        }
+
+        if (c == '"') {
+            in_quotes = !in_quotes;
+
+            if (start == NULL)
+                start = &input[i + 1];
+
+            continue;
+        }
+
+        if (isspace((unsigned char)c) && !in_quotes) {
+            if (start != NULL) {
+                input[i] = '\0';
+                args[argc++] = start;
+                start = NULL;
+            }
+        } else {
+            if (start == NULL)
+                start = &input[i];
+        }
+    }
+
+    if (start != NULL)
+        args[argc++] = start;
+
+    args[argc] = NULL;
+}
+
+int main() {
+    char input[MAX_INPUT];
+    char *args[MAX_ARGS];
+
+    printf("===== SKILL 6: ESCAPE SEQUENCE PARSER =====\n");
+    printf("Enter a command: ");
+
+    if (fgets(input, sizeof(input), stdin) == NULL)
+        return 1;
+
+    input[strcspn(input, "\n")] = '\0';
+
+    parse_input(input, args);
+
+    printf("\nParsed Output:\n");
+
+    int i = 0;
+
+    while (args[i] != NULL) {
+        printf("Argument %d: [%s]\n", i + 1, args[i]);
+        i++;
+    }
+
+    printf("\nTotal arguments: %d\n", i);
+
+    return 0;
+}
+
+
+================
+      6Q(b)
+================
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t pid;
+    int status;
+
+    printf("===== SKILL 6: PROCESS CREATION =====\n");
+
+    printf("Parent Process PID: %d\n", getpid());
+
+    pid = fork();
+
+    if (pid < 0) {
+        perror("fork failed");
+        return 1;
+    }
+
+    if (pid == 0) {
+        // Child process
+        printf("\n--- CHILD PROCESS ---\n");
+        printf("Child PID: %d\n", getpid());
+        printf("Parent PID: %d\n", getppid());
+
+        printf("Executing ls command...\n\n");
+
+        execlp("ls", "ls", "-l", NULL);
+
+        // This executes only if execlp fails
+        perror("Execution failed");
+        exit(1);
+    }
+
+    else {
+        // Parent process
+        printf("\n--- PARENT PROCESS ---\n");
+        printf("Created Child PID: %d\n", pid);
+
+        printf("Waiting for child process...\n");
+
+        if (waitpid(pid, &status, 0) == -1) {
+            perror("waitpid failed");
+            return 1;
+        }
+
+        if (WIFEXITED(status)) {
+            printf("\nChild exited normally.\n");
+            printf("Child exit status: %d\n",
+                   WEXITSTATUS(status));
+        }
+        else {
+            printf("\nChild terminated abnormally.\n");
+        }
+    }
+
+    printf("\nParent process completed.\n");
+
+    return 0;
+}
