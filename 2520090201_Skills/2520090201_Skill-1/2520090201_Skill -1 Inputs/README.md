@@ -609,3 +609,278 @@ int main() {
 
     return 1;
 }
+
+
+===============
+     8Q(a)
+===============
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_INPUT 500
+#define MAX_OUTPUT 1000
+
+void expand_variables(const char *input, char *output) {
+    int i = 0;
+    int j = 0;
+
+    while (input[i] != '\0' && j < MAX_OUTPUT - 1) {
+
+        // Detect variable reference
+        if (input[i] == '$') {
+
+            i++;
+
+            // Handle ${VARIABLE}
+            if (input[i] == '{') {
+                i++;
+
+                char variable[100];
+                int k = 0;
+
+                while (input[i] != '\0' &&
+                       input[i] != '}' &&
+                       k < 99) {
+                    variable[k++] = input[i++];
+                }
+
+                variable[k] = '\0';
+
+                if (input[i] == '}')
+                    i++;
+
+                char *value = getenv(variable);
+
+                if (value != NULL) {
+                    int v = 0;
+
+                    while (value[v] != '\0' &&
+                           j < MAX_OUTPUT - 1) {
+                        output[j++] = value[v++];
+                    }
+                } else {
+                    printf("Undefined variable: %s\n", variable);
+                }
+            }
+
+            // Handle $VARIABLE
+            else {
+                char variable[100];
+                int k = 0;
+
+                while (isalnum((unsigned char)input[i]) ||
+                       input[i] == '_') {
+
+                    if (k < 99)
+                        variable[k++] = input[i];
+
+                    i++;
+                }
+
+                variable[k] = '\0';
+
+                if (k == 0) {
+                    output[j++] = '$';
+                } else {
+                    char *value = getenv(variable);
+
+                    if (value != NULL) {
+                        int v = 0;
+
+                        while (value[v] != '\0' &&
+                               j < MAX_OUTPUT - 1) {
+                            output[j++] = value[v++];
+                        }
+                    } else {
+                        printf("Undefined variable: %s\n",
+                               variable);
+                    }
+                }
+            }
+        }
+
+        else {
+            output[j++] = input[i++];
+        }
+    }
+
+    output[j] = '\0';
+}
+
+int main() {
+    char input[MAX_INPUT];
+    char output[MAX_OUTPUT];
+
+    printf("===== VARIABLE EXPANSION =====\n");
+
+    printf("Enter a string: ");
+
+    if (fgets(input, sizeof(input), stdin) == NULL)
+        return 1;
+
+    input[strcspn(input, "\n")] = '\0';
+
+    printf("\nOriginal input:\n%s\n", input);
+
+    expand_variables(input, output);
+
+    printf("\nExpanded output:\n%s\n", output);
+
+    return 0;
+}
+
+
+===============
+     8Q(b)
+===============
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define MAX_INPUT 200
+#define MAX_ARGS 20
+
+// Function declarations
+int builtin_pwd(char **args);
+int builtin_cd(char **args);
+int builtin_echo(char **args);
+int builtin_exit(char **args);
+
+// Structure for dispatch table
+typedef struct {
+    char *name;
+    int (*function)(char **args);
+} Builtin;
+
+// Built-in command dispatch table
+Builtin builtins[] = {
+    {"pwd", builtin_pwd},
+    {"cd", builtin_cd},
+    {"echo", builtin_echo},
+    {"exit", builtin_exit}
+};
+
+int builtin_count = sizeof(builtins) / sizeof(builtins[0]);
+
+// pwd command
+int builtin_pwd(char **args) {
+    char cwd[1024];
+
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("%s\n", cwd);
+        return 0;
+    }
+
+    perror("pwd");
+    return 1;
+}
+
+// cd command
+int builtin_cd(char **args) {
+
+    if (args[1] == NULL) {
+        printf("cd: missing directory\n");
+        return 1;
+    }
+
+    if (chdir(args[1]) != 0) {
+        perror("cd");
+        return 1;
+    }
+
+    return 0;
+}
+
+// echo command
+int builtin_echo(char **args) {
+    int i = 1;
+
+    while (args[i] != NULL) {
+        printf("%s", args[i]);
+
+        if (args[i + 1] != NULL)
+            printf(" ");
+
+        i++;
+    }
+
+    printf("\n");
+
+    return 0;
+}
+
+// exit command
+int builtin_exit(char **args) {
+    printf("Exiting shell...\n");
+    exit(0);
+}
+
+// Execute built-in command
+int execute_builtin(char **args) {
+
+    if (args[0] == NULL)
+        return 0;
+
+    for (int i = 0; i < builtin_count; i++) {
+
+        if (strcmp(args[0], builtins[i].name) == 0) {
+
+            // Dispatch to appropriate function
+            return builtins[i].function(args);
+        }
+    }
+
+    printf("Invalid built-in command: %s\n", args[0]);
+
+    return 1;
+}
+
+// Parse command
+int parse_input(char *input, char **args) {
+
+    int argc = 0;
+
+    char *token = strtok(input, " \t");
+
+    while (token != NULL && argc < MAX_ARGS - 1) {
+
+        args[argc++] = token;
+
+        token = strtok(NULL, " \t");
+    }
+
+    args[argc] = NULL;
+
+    return argc;
+}
+
+int main() {
+
+    char input[MAX_INPUT];
+    char *args[MAX_ARGS];
+
+    printf("===== BUILT-IN COMMAND DISPATCH =====\n");
+
+    while (1) {
+
+        printf("skill8-shell> ");
+        fflush(stdout);
+
+        if (fgets(input, sizeof(input), stdin) == NULL)
+            break;
+
+        input[strcspn(input, "\n")] = '\0';
+
+        if (strlen(input) == 0)
+            continue;
+
+        parse_input(input, args);
+
+        execute_builtin(args);
+    }
+
+    return 0;
+}
