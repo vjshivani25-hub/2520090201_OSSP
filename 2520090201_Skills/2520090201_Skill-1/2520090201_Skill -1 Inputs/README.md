@@ -432,3 +432,180 @@ int main() {
 
     return 0;
 }
+
+
+
+================
+      7Q(a)
+================
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t child1, child2;
+    int status;
+
+    printf("===== PROCESS SYNCHRONIZATION USING waitpid() =====\n");
+
+    printf("Parent PID: %d\n", getpid());
+
+    // Create first child
+    child1 = fork();
+
+    if (child1 < 0) {
+        perror("fork failed");
+        return 1;
+    }
+
+    if (child1 == 0) {
+        printf("\nChild 1 started\n");
+        printf("Child 1 PID: %d\n", getpid());
+
+        sleep(2);
+
+        printf("Child 1 completed\n");
+
+        exit(10);
+    }
+
+    // Create second child
+    child2 = fork();
+
+    if (child2 < 0) {
+        perror("fork failed");
+        return 1;
+    }
+
+    if (child2 == 0) {
+        printf("\nChild 2 started\n");
+        printf("Child 2 PID: %d\n", getpid());
+
+        sleep(4);
+
+        printf("Child 2 completed\n");
+
+        exit(20);
+    }
+
+    // Parent process
+    printf("\nParent created two children.\n");
+    printf("Child 1 PID: %d\n", child1);
+    printf("Child 2 PID: %d\n", child2);
+
+    printf("\nParent waiting for Child 1...\n");
+
+    if (waitpid(child1, &status, 0) == -1) {
+        perror("waitpid");
+        return 1;
+    }
+
+    if (WIFEXITED(status)) {
+        printf("Child 1 exited normally.\n");
+        printf("Child 1 exit status: %d\n",
+               WEXITSTATUS(status));
+    }
+
+    printf("\nParent waiting for Child 2...\n");
+
+    if (waitpid(child2, &status, 0) == -1) {
+        perror("waitpid");
+        return 1;
+    }
+
+    if (WIFEXITED(status)) {
+        printf("Child 2 exited normally.\n");
+        printf("Child 2 exit status: %d\n",
+               WEXITSTATUS(status));
+    }
+
+    printf("\nAll child processes completed.\n");
+    printf("Parent process exiting.\n");
+
+    return 0;
+}
+
+
+================
+      7Q(b)
+================
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+#define MAX_PATH 4096
+
+int main() {
+    char *path;
+    char *path_copy;
+    char *directory;
+    char full_path[MAX_PATH];
+
+    char command[100];
+
+    printf("===== PATH COMMAND RESOLUTION =====\n");
+
+    // Retrieve PATH
+    path = getenv("PATH");
+
+    if (path == NULL) {
+        printf("PATH variable not found.\n");
+        return 1;
+    }
+
+    printf("\nPATH variable:\n%s\n", path);
+
+    // Get command from user
+    printf("\nEnter command to search: ");
+    scanf("%99s", command);
+
+    // Copy PATH because strtok modifies the string
+    path_copy = strdup(path);
+
+    if (path_copy == NULL) {
+        perror("strdup");
+        return 1;
+    }
+
+    // Parse PATH directories
+    directory = strtok(path_copy, ":");
+
+    while (directory != NULL) {
+
+        // Create complete path
+        snprintf(full_path, sizeof(full_path),
+                 "%s/%s", directory, command);
+
+        // Check if file exists
+        if (access(full_path, F_OK) == 0) {
+
+            printf("\nExecutable found:\n");
+            printf("%s\n", full_path);
+
+            // Verify execute permission
+            if (access(full_path, X_OK) == 0) {
+                printf("Execute permission: YES\n");
+                printf("Command resolution successful.\n");
+
+                free(path_copy);
+                return 0;
+            } else {
+                printf("Execute permission: NO\n");
+            }
+        }
+
+        // Move to next PATH directory
+        directory = strtok(NULL, ":");
+    }
+
+    printf("\nCommand '%s' not found in PATH.\n",
+           command);
+
+    free(path_copy);
+
+    return 1;
+}
