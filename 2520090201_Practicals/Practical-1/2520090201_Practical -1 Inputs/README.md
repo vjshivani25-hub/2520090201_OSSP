@@ -541,3 +541,256 @@ int main()
 
     return 0;
 }
+
+
+
+==================
+       8Q(a)
+==================
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    printf("===== MEMORY ALLOCATION DEMO =====\n");
+
+    // malloc()
+    int *a = (int *)malloc(5 * sizeof(int));
+
+    if (a == NULL) {
+        printf("malloc failed\n");
+        return 1;
+    }
+
+    printf("\n1. malloc() allocated memory for 5 integers.\n");
+
+    for (int i = 0; i < 5; i++) {
+        a[i] = i + 1;
+    }
+
+    printf("Values using malloc: ");
+    for (int i = 0; i < 5; i++) {
+        printf("%d ", a[i]);
+    }
+    printf("\n");
+
+    // calloc()
+    int *b = (int *)calloc(5, sizeof(int));
+
+    if (b == NULL) {
+        printf("calloc failed\n");
+        free(a);
+        return 1;
+    }
+
+    printf("\n2. calloc() allocated memory for 5 integers.\n");
+    printf("Initial calloc values: ");
+
+    for (int i = 0; i < 5; i++) {
+        printf("%d ", b[i]);
+    }
+    printf("\n");
+
+    // realloc()
+    a = (int *)realloc(a, 10 * sizeof(int));
+
+    if (a == NULL) {
+        printf("realloc failed\n");
+        free(b);
+        return 1;
+    }
+
+    printf("\n3. realloc() increased malloc memory from 5 to 10 integers.\n");
+
+    for (int i = 5; i < 10; i++) {
+        a[i] = i + 1;
+    }
+
+    printf("Values after realloc: ");
+    for (int i = 0; i < 10; i++) {
+        printf("%d ", a[i]);
+    }
+    printf("\n");
+
+    // free()
+    free(a);
+    printf("\n4. free() released malloc/realloc memory.\n");
+
+    free(b);
+    printf("5. free() released calloc memory.\n");
+
+    printf("\nMemory allocation demonstration completed.\n");
+
+    return 0;
+}
+
+
+
+==================
+       8Q(b)
+==================
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define SIZE 10
+
+int main() {
+    int *data = malloc(SIZE * sizeof(int));
+
+    if (data == NULL) {
+        perror("malloc");
+        return 1;
+    }
+
+    // Initialize data
+    for (int i = 0; i < SIZE; i++) {
+        data[i] = i + 1;
+    }
+
+    printf("Parent PID: %d\n", getpid());
+    printf("Memory address of data: %p\n", (void *)data);
+
+    printf("Data before fork: ");
+    for (int i = 0; i < SIZE; i++) {
+        printf("%d ", data[i]);
+    }
+    printf("\n");
+
+    printf("\nCalling fork()...\n");
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        free(data);
+        return 1;
+    }
+
+    if (pid == 0) {
+        // Child process
+        printf("\n===== CHILD PROCESS =====\n");
+        printf("Child PID: %d\n", getpid());
+        printf("Child data address: %p\n", (void *)data);
+
+        printf("Data before modification: ");
+        for (int i = 0; i < SIZE; i++) {
+            printf("%d ", data[i]);
+        }
+        printf("\n");
+
+        printf("\nChild modifies the data...\n");
+
+        data[0] = 1000;
+        data[1] = 2000;
+
+        printf("Data after modification: ");
+        for (int i = 0; i < SIZE; i++) {
+            printf("%d ", data[i]);
+        }
+        printf("\n");
+
+        printf("\nChild completed modification.\n");
+
+        free(data);
+        exit(0);
+    }
+    else {
+        // Parent process
+        printf("\n===== PARENT PROCESS =====\n");
+        printf("Parent PID: %d\n", getpid());
+
+        sleep(2);
+
+        printf("Parent data after child modification: ");
+
+        for (int i = 0; i < SIZE; i++) {
+            printf("%d ", data[i]);
+        }
+
+        printf("\n");
+
+        wait(NULL);
+
+        free(data);
+
+        printf("Parent completed.\n");
+    }
+
+    return 0;
+}
+
+
+
+==================
+       8Q(c)
+==================
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define SIZE (50 * 1024 * 1024)
+
+int main() {
+    char *data = malloc(SIZE);
+
+    if (data == NULL) {
+        perror("malloc");
+        return 1;
+    }
+
+    // Touch every page so physical memory is actually allocated
+    for (size_t i = 0; i < SIZE; i += 4096) {
+        data[i] = 1;
+    }
+
+    printf("Parent PID: %d\n", getpid());
+    printf("Allocated: %d MB\n", SIZE / (1024 * 1024));
+
+    printf("\nPress ENTER to perform fork()...");
+    getchar();
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        free(data);
+        return 1;
+    }
+
+    if (pid == 0) {
+        printf("\nChild PID: %d\n", getpid());
+        printf("Child created. Memory is initially shared using Copy-on-Write.\n");
+
+        printf("\nPress ENTER to modify memory...");
+        getchar();
+
+        // Modify every page
+        for (size_t i = 0; i < SIZE; i += 4096) {
+            data[i] = 2;
+        }
+
+        printf("\nChild modified the entire 50 MB memory region.\n");
+        printf("Press ENTER to exit child...");
+        getchar();
+
+        free(data);
+        exit(0);
+    }
+    else {
+        printf("\nParent PID: %d\n", getpid());
+        printf("Child PID: %d\n", pid);
+
+        printf("\nParent is waiting...\n");
+        printf("Use another Ubuntu terminal to monitor memory.\n");
+
+        wait(NULL);
+
+        free(data);
+
+        printf("\nChild finished. Parent exiting.\n");
+    }
+
+    return 0;
+}
