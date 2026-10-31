@@ -1,0 +1,3 @@
+fdmanager
+src/*.o
+output.txt

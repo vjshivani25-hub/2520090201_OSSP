@@ -1,0 +1,2 @@
+Linux File Descriptor Management System: file I/O demo.
+This line was written through a duplicated descriptor (dup).

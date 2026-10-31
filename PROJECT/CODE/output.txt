@@ -1,0 +1,2 @@
+This text was redirected into output.txt using dup2().
+The original terminal stdout is restored after this message.
